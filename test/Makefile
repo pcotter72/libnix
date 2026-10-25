@@ -135,7 +135,7 @@ popen.o: ../sources/nix20/stdio/popen.c
 popen: popen.c popen.o
 	$(CROSS_CC) $(CROSS_CFLAGS) -Wall -o $@ popen.c popen.o
 
-check-target: stack wprintf fcmp inet atan2-zero atan2f-zero ftw frexpl fread ftruncate fstat
+check-target: stack wprintf fcmp inet atan2-zero atan2f-zero ftw frexpl fread ftruncate fstat strto
 	$(SIM) $(SIMFLAGS) ./stack
 	$(SIM) $(SIMFLAGS) ./wprintf
 	$(SIM) $(SIMFLAGS) ./fcmp
@@ -147,6 +147,7 @@ check-target: stack wprintf fcmp inet atan2-zero atan2f-zero ftw frexpl fread ft
 	$(SIM) $(SIMFLAGS) ./fread
 	$(SIM) $(SIMFLAGS) ./ftruncate
 	$(SIM) $(SIMFLAGS) ./fstat
+	$(SIM) $(SIMFLAGS) ./strto
 
 # fread() reading large requests straight into the caller's memory
 fread: fread.c
@@ -160,6 +161,15 @@ ftruncate: ftruncate.c
 fstat: fstat.c
 	$(CROSS_CC) $(CROSS_CFLAGS) -Wall -o $@ fstat.c
 
+# The number parsers, compiled against the libnix headers and linked ahead of libnix.
+STRTO_OBJS = strtol.o strtoul.o strtoll.o strtoull.o wcstol.o
+
+$(STRTO_OBJS): %.o: ../sources/nix/stdlib/%.c
+	$(CROSS_CC) $(CROSS_CFLAGS) -I../sources/headers -fno-builtin -D__libnix__ -c -o $@ $<
+
+strto: strto.c $(STRTO_OBJS)
+	$(CROSS_CC) $(CROSS_CFLAGS) -fno-builtin -Wall -o $@ strto.c $(STRTO_OBJS)
+
 # Exec tasks are required; vamos cannot run this pthread test.
 setlocale_threads: setlocale_threads.c
 	$(CROSS_CC) $(CROSS_CFLAGS) -Wall -o $@ $< -lpthread -lm
@@ -171,7 +181,7 @@ clean:
 	rm -f $(HOST_ATAN_TESTS) host-atan-stub.o host-atan2-test.o host-atan2f-test.o host-atan2-normal.o host-atan2f-normal.o host-atan2-fast.o host-atan2f-fast.o
 	rm -f amigapath stack swapstack.o setlocale_threads cxa-dtors wprintf vswprintf.o vwfprintf.o \
 	  fcmp eqdf2.o eqsf2.o inet inet_aton.o inet_network.o atan2-zero atan2f-zero atan2.o atan2f.o \
-	  ftw ftw.o nftw.o popen popen.o frexpl frexpl.o fread ftruncate fstat
+	  ftw ftw.o nftw.o popen popen.o frexpl frexpl.o fread ftruncate fstat strto $(STRTO_OBJS)
 
 
 
